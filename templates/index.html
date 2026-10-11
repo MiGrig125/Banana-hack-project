@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="ru">
+<!<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,24 +12,23 @@
       <span class="logo-icon">◈</span>
       <span>{{ app_name }}</span>
     </div>
-    <div class="header-status" id="healthStatus">проверка…</div>
+    <div class="header-status" id="healthStatus">checking…</div>
   </header>
 
   <div class="layout">
     <aside class="sidebar">
       <nav class="modes">
-        <button class="mode-btn active" data-mode="auto">Авто</button>
-        <button class="mode-btn" data-mode="generate">Генерация</button>
-        <button class="mode-btn" data-mode="edit">Редактирование</button>
-        <button class="mode-btn" data-mode="analyze">Анализ</button>
-        <button class="mode-btn" data-mode="enhance">Улучшение</button>
-        <button class="mode-btn" data-mode="remove_bg">Удаление фона</button>
-        <button class="mode-btn" data-mode="history">История</button>
+        <button class="mode-btn active" data-mode="auto">Auto</button>
+        
+        
+        <button class="mode-btn" data-mode="enhance">Enhance</button>
+        <button class="mode-btn" data-mode="remove_bg">Remove background</button>
+        <button class="mode-btn" data-mode="history">History</button>
       </nav>
       <div class="provider-box">
-        <label for="providerSelect">Провайдер</label>
+        <label for="providerSelect">Provider</label>
         <select id="providerSelect">
-          <option value="">по умолчанию</option>
+          <option value="">default</option>
         </select>
         <p class="hint" id="providerHint"></p>
       </div>
@@ -40,31 +39,31 @@
         <div class="upload-zone" id="uploadZone">
           <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" hidden />
           <div class="upload-inner">
-            <p>Перетащите изображение сюда или <button type="button" id="pickFileBtn" class="link-btn">выберите файл</button></p>
-            <p class="hint">JPEG / PNG / WEBP · до 15 МБ</p>
+            <p>Drag & drop an image here or <button type="button" id="pickFileBtn" class="link-btn">choose a file</button></p>
+            <p class="hint">JPEG / PNG / WEBP · up to 15 MB</p>
           </div>
           <div class="preview-source hidden" id="sourcePreview">
-            <img id="sourceImg" alt="Исходное" />
+            <img id="sourceImg" alt="Source" />
             <button type="button" class="clear-btn" id="clearSource">✕</button>
           </div>
         </div>
 
         <div class="prompt-area">
-          <textarea id="promptInput" rows="3" placeholder="Опишите, что нужно сделать…"></textarea>
+          <textarea id="promptInput" rows="3" placeholder="Describe what you want…"></textarea>
           <div class="options-row" id="optionsRow">
             <div class="opt" id="enhanceModeWrap" hidden>
-              <label>Режим улучшения</label>
+              <label>Enhance mode</label>
               <select id="enhanceMode">
-                <option value="auto">Авто</option>
-                <option value="sharpen">Резкость</option>
-                <option value="contrast">Контраст</option>
-                <option value="denoise">Шумоподавление</option>
-                <option value="upscale_basic">2× увеличение</option>
+                <option value="auto">Auto</option>
+                <option value="sharpen">Sharpen</option>
+                <option value="contrast">Contrast</option>
+                <option value="denoise">Denoise</option>
+                <option value="upscale_basic">2× upscale</option>
               </select>
             </div>
           </div>
           <button type="button" class="primary-btn" id="runBtn">
-            <span class="btn-text">Запустить</span>
+            <span class="btn-text">Run</span>
             <span class="spinner hidden" id="runSpinner"></span>
           </button>
         </div>
@@ -73,28 +72,28 @@
 
         <div class="results" id="resultsArea">
           <div class="result-card hidden" id="imageResult">
-            <h3>Результат</h3>
+            <h3>Result</h3>
             <div class="compare">
               <div class="cmp-item" id="cmpSourceWrap" hidden>
-                <span class="label">Исходное</span>
-                <img id="cmpSource" alt="Исходное" />
+                <span class="label">Source</span>
+                <img id="cmpSource" alt="Source" />
               </div>
               <div class="cmp-item">
-                <span class="label">Результат</span>
-                <img id="resultImg" alt="Результат" />
+                <span class="label">Result</span>
+                <img id="resultImg" alt="Result" />
               </div>
             </div>
-            <a class="download-btn" id="downloadBtn" href="#" download>Скачать</a>
+            <a class="download-btn" id="downloadBtn" href="#" download>Download</a>
           </div>
           <div class="result-card hidden" id="textResult">
-            <h3>Анализ</h3>
+            <h3>Analysis</h3>
             <pre id="analysisText"></pre>
           </div>
         </div>
       </section>
 
       <section class="panel hidden" id="historyPanel">
-        <h2>История операций</h2>
+        <h2>Operation history</h2>
         <div id="historyList" class="history-list"></div>
       </section>
     </main>

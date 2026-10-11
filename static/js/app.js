@@ -30,7 +30,6 @@
   const providerHint = $("#providerHint");
   const healthStatus = $("#healthStatus");
 
-  // --- Mode switching ---
   $$(".mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       $$(".mode-btn").forEach((b) => b.classList.remove("active"));
@@ -51,17 +50,16 @@
   function updateUIForMode() {
     enhanceModeWrap.hidden = mode !== "enhance";
     const placeholders = {
-      auto: "Например: Удали фон, поставь автомобиль на ночную улицу Токио, улучши качество",
-      generate: "Фотореалистичный спортивный автомобиль на горной дороге во время заката",
-      edit: "Замени фон на ночную улицу Токио, сделай освещение кинематографичным",
-      analyze: "Какие предметы находятся на фотографии?",
-      enhance: "Можно оставить пустым — будет применено авто-улучшение",
-      remove_bg: "Можно оставить пустым",
+      auto: "e.g. Remove background, put the car on a Tokyo night street, enhance quality",
+      generate: "Photorealistic sports car on a mountain road at sunset",
+      edit: "Replace the background with a Tokyo night street, cinematic lighting",
+      analyze: "What objects are in this photo?",
+      enhance: "Leave empty for auto enhancement",
+      remove_bg: "Leave empty",
     };
-    promptInput.placeholder = placeholders[mode] || "Опишите задачу…";
+    promptInput.placeholder = placeholders[mode] || "Describe the task…";
   }
 
-  // --- File handling ---
   pickFileBtn.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", () => {
     if (fileInput.files[0]) setFile(fileInput.files[0]);
@@ -88,7 +86,7 @@
 
   function setFile(file) {
     if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
-      setStatus("Поддерживаются только JPEG, PNG, WEBP", "error");
+      setStatus("Only JPEG, PNG, WEBP are supported", "error");
       return;
     }
     currentFile = file;
@@ -98,7 +96,6 @@
     uploadZone.querySelector(".upload-inner").classList.add("hidden");
   }
 
-  // --- Run ---
   runBtn.addEventListener("click", run);
 
   async function run() {
@@ -109,24 +106,7 @@
 
     try {
       let res;
-      if (mode === "generate") {
-        res = await postJSON("/api/generate", {
-          prompt: promptInput.value.trim(),
-          provider: providerSelect.value || undefined,
-        });
-      } else if (mode === "edit") {
-        res = await postForm("/api/edit", {
-          prompt: promptInput.value.trim(),
-          image: currentFile,
-          provider: providerSelect.value || undefined,
-        });
-      } else if (mode === "analyze") {
-        res = await postForm("/api/analyze", {
-          question: promptInput.value.trim() || "Опиши подробно содержимое этого изображения.",
-          image: currentFile,
-          provider: providerSelect.value || undefined,
-        });
-      } else if (mode === "enhance") {
+      if (mode === "enhance") {
         res = await postForm("/api/enhance", {
           mode: $("#enhanceMode").value,
           image: currentFile,
@@ -136,7 +116,6 @@
           image: currentFile,
         });
       } else {
-        // auto
         res = await postForm("/api/auto-process", {
           prompt: promptInput.value.trim(),
           image: currentFile,
@@ -145,7 +124,7 @@
       }
 
       if (!res.success) {
-        setStatus(res.error || res.message || "Ошибка", "error");
+        setStatus(res.error || res.message || "Error", "error");
         return;
       }
 
@@ -165,11 +144,11 @@
         analysisText.textContent = res.analysis;
         textResult.classList.remove("hidden");
       }
-      let msg = res.message || "Готово";
-      if (res.plan && res.plan.length) msg += " · план: " + res.plan.join(" → ");
+      let msg = res.message || "Done";
+      if (res.plan && res.plan.length) msg += " · plan: " + res.plan.join(" → ");
       setStatus(msg, "success");
     } catch (err) {
-      setStatus(err.message || "Сетевая ошибка", "error");
+      setStatus(err.message || "Network error", "error");
     } finally {
       setLoading(false);
     }
@@ -178,7 +157,8 @@
   function setLoading(on) {
     runBtn.disabled = on;
     runSpinner.classList.toggle("hidden", !on);
-    $(".btn-text").textContent = on ? "Обработка…" : "Запустить";
+    $(".btn-text").textContent = on ? "Waiting (up to 2 min)…" : "Run";
+    if (on) setStatus("Sending request to the model. Generation usually takes 20–90 seconds…", "");
   }
 
   function setStatus(text, type) {
@@ -186,13 +166,28 @@
     statusBar.className = "status-bar" + (type ? " " + type : "");
   }
 
+  async function fetchWithTimeout(url, options, ms = 150000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const r = await fetch(url, { ...options, signal: ctrl.signal });
+      return await r.json();
+    } catch (e) {
+      if (e.name === "AbortError") {
+        throw new Error("Timed out (150s). The provider may be overloaded — try again.");
+      }
+      throw e;
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
   async function postJSON(url, body) {
-    const r = await fetch(url, {
+    return fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    return r.json();
   }
 
   async function postForm(url, fields) {
@@ -202,29 +197,27 @@
       if (k === "image" && !v) continue;
       fd.append(k, v);
     }
-    const r = await fetch(url, { method: "POST", body: fd });
-    return r.json();
+    return fetchWithTimeout(url, { method: "POST", body: fd });
   }
 
-  // --- Providers & health ---
   async function loadProviders() {
     try {
       const r = await fetch("/api/providers");
       const data = await r.json();
-      providerSelect.innerHTML = '<option value="">по умолчанию</option>';
+      providerSelect.innerHTML = '<option value="">default</option>';
       (data.providers || []).forEach((p) => {
         if (p.name === "local") return;
         const opt = document.createElement("option");
         opt.value = p.name;
-        opt.textContent = p.name + (p.configured ? "" : " (не настроен)");
+        opt.textContent = p.name + (p.configured ? "" : " (not configured)");
         providerSelect.appendChild(opt);
       });
       const configured = (data.providers || []).filter((p) => p.configured && p.name !== "local");
       providerHint.textContent = configured.length
-        ? "Доступно: " + configured.map((p) => p.name).join(", ")
-        : "API-ключи не заданы — локальные функции (фон, улучшение) работают";
+        ? "Available: " + configured.map((p) => p.name).join(", ")
+        : "No API keys set — local tools (background, enhance) still work";
     } catch (_) {
-      providerHint.textContent = "Не удалось загрузить список провайдеров";
+      providerHint.textContent = "Could not load providers";
     }
   }
 
@@ -232,28 +225,33 @@
     try {
       const r = await fetch("/api/health");
       const data = await r.json();
-      healthStatus.textContent = data.status === "ok" ? "онлайн" : "частично";
+      healthStatus.textContent = data.status === "ok" ? "online" : "degraded";
       healthStatus.className = "header-status " + (data.status === "ok" ? "ok" : "err");
     } catch (_) {
-      healthStatus.textContent = "офлайн";
+      healthStatus.textContent = "offline";
       healthStatus.className = "header-status err";
     }
   }
 
   async function loadHistory() {
-    historyList.innerHTML = "<p class='hint'>Загрузка…</p>";
+    historyList.innerHTML = "<p class='hint'>Loading…</p>";
     try {
       const r = await fetch("/api/history?limit=30");
       const items = await r.json();
       if (!items.length) {
-        historyList.innerHTML = "<p class='hint'>История пуста</p>";
+        historyList.innerHTML = "<p class='hint'>No history yet</p>";
         return;
       }
       historyList.innerHTML = items
         .map((it) => {
-          const st = it.status === "completed" ? "status-completed" : it.status === "failed" ? "status-failed" : "";
+          const st =
+            it.status === "completed"
+              ? "status-completed"
+              : it.status === "failed"
+                ? "status-failed"
+                : "";
           const link = it.result_url
-            ? `<a href="${it.result_url}" target="_blank" class="link-btn">результат</a>`
+            ? `<a href="${it.result_url}" target="_blank" class="link-btn">result</a>`
             : "";
           return `<div class="history-item">
             <div>
@@ -266,7 +264,7 @@
         })
         .join("");
     } catch (_) {
-      historyList.innerHTML = "<p class='hint'>Ошибка загрузки истории</p>";
+      historyList.innerHTML = "<p class='hint'>Failed to load history</p>";
     }
   }
 
